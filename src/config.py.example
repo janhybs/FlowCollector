@@ -1,0 +1,9 @@
+# encoding: utf-8
+# author:   Jan Hybs
+
+credentials = {
+    "user": 'username',
+    "password": 'password',
+    "database": 'flow123d-collect',
+    'host': '127.0.0.1'
+}
