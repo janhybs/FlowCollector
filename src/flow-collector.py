@@ -2,66 +2,12 @@
 # author:   Jan Hybs
 import filecmp
 import json
-import mysql.connector
 from optparse import OptionParser
 import os
+from mysqldb import mysql_exec
+from mongodb import mongo_exec
 
-from config import credentials
 from utils.decoder import ProfilerJSONDecoder
-from mysql.mysql_query import insert_condition_query, insert_condition_fields, insert_structure_query, insert_measurement_query
-
-connector = mysql.connector.connect(**credentials)
-cursor = connector.cursor()
-
-
-def create_conditions(json_data):
-    data = { key: json_data[key] for key in insert_condition_fields }
-    cursor.execute(insert_condition_query, data)
-
-    return cursor.lastrowid
-
-
-def create_structure(json_data, parent=None):
-    try:
-        cursor.execute(insert_structure_query, { 'name': json_data['tag'], 'parent': parent })
-    except mysql.connector.errors.IntegrityError as e:
-        # print e
-        pass
-
-    if 'children' in json_data:
-        for child in json_data['children']:
-            create_structure(child, json_data['tag'])
-
-
-def create_measurement(json_data, metric, condition_id):
-    return {
-        'metric': metric,
-        'value': json_data[metric],
-        'structure': json_data['tag'],
-        'cond': condition_id
-    }
-
-
-def add_measurements(json_data, condition_id):
-    # store all keys
-    fields = set(json_data.keys())
-    fields = fields - set(['function', 'tag', 'file-path'])
-
-    # except children
-    if 'children' in fields:
-        fields.remove ('children')
-
-    for metric in fields:
-        try:
-            data = create_measurement(json_data, metric, condition_id)
-            cursor.execute(insert_measurement_query, data)
-        except mysql.connector.errors.DatabaseError as e:
-            print "{:s} {:s}".format(data, e)
-
-
-    if 'children' in json_data:
-        for child in json_data['children']:
-            add_measurements(child, condition_id)
 
 
 # parse arguments
@@ -71,8 +17,9 @@ def create_parser():
                           epilog="If no files are specified all json files in current directory will be selected. \n" +
                                  "Useful when there is not known precise file name only location")
 
-    parser.add_option("-d", "--directory", dest="dirs", default=["/var/www/html/flow-collector-arts"], action="append",
+    parser.add_option("-d", "--directory", dest="dirs", default=["./"], action="append",
                       help="Directory to be searched", metavar="DIR")
+    # /var/www/html/flow-collector-arts
     parser.add_option("-f", "--file", dest="files", default=['../data/example.json'], action="append",
                       help="Directory to be searched", metavar="FILE")
     parser.add_option("-n", "--non-recursive", dest="non_recursive", default=False, action='store_true',
@@ -111,11 +58,16 @@ def process_file(file):
     json_data = read_file(file)
     if not json_data:
         return
+    if False:
+        whole_program = json_data['children'][0]
+        condition_id = mysql_exec.create_conditions(json_data)
+        mysql_exec.create_structure(whole_program, parent=None)
+        mysql_exec.add_measurements(whole_program, condition_id)
+    else:
+        mongo_exec.add_measurements(json_data)
 
-    condition_id = create_conditions(json_data)
-    whole_program = json_data['children'][0]
-    create_structure(whole_program, parent=None)
-    add_measurements(whole_program, condition_id)
+
+
 
 
 if __name__ == '__main__':
@@ -147,8 +99,8 @@ if __name__ == '__main__':
                 break
         if not match:
             json_files.append(a)
-    print "  Removed {:d} duplicated json files ({:d}, {:d})".format(len(json_files_tmp) - len(json_files), len(json_files_tmp), len(json_files))
-
+    print "  Removed {:d} duplicated json files ({:d}, {:d})".format(len(json_files_tmp) - len(json_files),
+                                                                     len(json_files_tmp), len(json_files))
 
     print 'Processing files'
     current_index = 1
@@ -157,10 +109,8 @@ if __name__ == '__main__':
         process_file(json_file)
         current_index += 1
 
-
     print 'Commiting changes to DB'
-    connector.commit()
+    mysql_exec.mysql_commit()
 
     print 'closing connection to DB'
-    cursor.close()
-    connector.close()
+    mysql_exec.mysql_close()
