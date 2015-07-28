@@ -1,15 +1,14 @@
 # encoding: utf-8
 # author:   Jan Hybs
 import filecmp
-
-import json, mysql.connector
+import json
+import mysql.connector
 from optparse import OptionParser
 import os
-from config import credentials
 
+from config import credentials
 from utils.decoder import ProfilerJSONDecoder
-from utils.dotdict import DotDict
-from utils.sql import insert_condition_query, insert_condition_fields, insert_structure_query, insert_measurement_query
+from mysql.mysql_query import insert_condition_query, insert_condition_fields, insert_structure_query, insert_measurement_query
 
 connector = mysql.connector.connect(**credentials)
 cursor = connector.cursor()
@@ -34,10 +33,10 @@ def create_structure(json_data, parent=None):
             create_structure(child, json_data['tag'])
 
 
-def create_measurement(json_data, field, condition_id):
+def create_measurement(json_data, metric, condition_id):
     return {
-        'type': field,
-        'value': json_data[field],
+        'metric': metric,
+        'value': json_data[metric],
         'structure': json_data['tag'],
         'cond': condition_id
     }
@@ -45,15 +44,20 @@ def create_measurement(json_data, field, condition_id):
 
 def add_measurements(json_data, condition_id):
     # store all keys
-    fields = json_data.keys()
+    fields = set(json_data.keys())
+    fields = fields - set(['function', 'tag', 'file-path'])
 
     # except children
     if 'children' in fields:
         fields.remove ('children')
 
-    for field in fields:
-        data = create_measurement(json_data, field, condition_id)
-        cursor.execute(insert_measurement_query, data)
+    for metric in fields:
+        try:
+            data = create_measurement(json_data, metric, condition_id)
+            cursor.execute(insert_measurement_query, data)
+        except mysql.connector.errors.DatabaseError as e:
+            print "{:s} {:s}".format(data, e)
+
 
     if 'children' in json_data:
         for child in json_data['children']:
@@ -67,7 +71,7 @@ def create_parser():
                           epilog="If no files are specified all json files in current directory will be selected. \n" +
                                  "Useful when there is not known precise file name only location")
 
-    parser.add_option("-d", "--directory", dest="dirs", default=["./"], action="append",
+    parser.add_option("-d", "--directory", dest="dirs", default=["/var/www/html/flow-collector-arts"], action="append",
                       help="Directory to be searched", metavar="DIR")
     parser.add_option("-f", "--file", dest="files", default=['../data/example.json'], action="append",
                       help="Directory to be searched", metavar="FILE")
@@ -122,6 +126,7 @@ if __name__ == '__main__':
 
     json_files_tmp = list(os.path.realpath(f) for f in options.files)
 
+    print "Fetching json files"
     # traverse root directory, and list directories as dirs and files as files
     for dir in options.dirs:
         for root, dirs, files in os.walk(dir):
@@ -130,6 +135,7 @@ if __name__ == '__main__':
                 if file.lower().endswith('.json'):
                     json_files_tmp.append(os.path.realpath(os.path.join(root, file)))
 
+    print "Removing duplicates"
     json_files = list()
     for a in json_files_tmp:
         match = False
@@ -141,19 +147,20 @@ if __name__ == '__main__':
                 break
         if not match:
             json_files.append(a)
+    print "  Removed {:d} duplicated json files ({:d}, {:d})".format(len(json_files_tmp) - len(json_files), len(json_files_tmp), len(json_files))
 
-    print "Removed {:d} duplicated json files ({:d}, {:d})".format(len(json_files_tmp) - len(json_files), len(json_files_tmp), len(json_files))
 
+    print 'Processing files'
+    current_index = 1
     for json_file in json_files:
-        print "Processing file '{:s}'".format(json_file)
+        print "  Processing file {:d}/{:d} '{:s}'".format(current_index, len(json_files), json_file)
         process_file(json_file)
+        current_index += 1
 
 
-    print 'done'
-    print 'commiting'
+    print 'Commiting changes to DB'
     connector.commit()
 
     print 'closing connection to DB'
     cursor.close()
     connector.close()
-    
