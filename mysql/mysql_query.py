@@ -30,9 +30,9 @@ insert_structure_query = \
 insert_measurement_query = \
     """
         INSERT INTO  `measurement` (
-        `id` , `type` , `value` , `structure` , `cond`
+        `id` , `metric` , `value` , `structure` , `cond`
         )
         VALUES (
-        NULL ,  %(type)s,  %(value)s,  %(structure)s,  %(cond)s
+        NULL ,  %(metric)s,  %(value)s,  %(structure)s,  %(cond)s
         )
     """
