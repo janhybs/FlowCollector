@@ -4,11 +4,67 @@ import filecmp
 import json
 from optparse import OptionParser
 import os
+from mongodb.mongo_exec import MongoExec
 from mysqldb import mysql_exec
 from mongodb import mongo_exec
+from mysqldb.mysql_exec import MySQLExec
 
 from utils.decoder import ProfilerJSONDecoder
+import time
 
+def_dir = '/var/www/html/flow-collector-arts/2015-07-28_11-12-25/tests/02_transport_12d'
+def_dir = '/var/www/html/flow-collector-arts/'
+commit_data = False
+commit_data = True
+
+
+class Timer(object):
+    def __init__(self):
+        self.levels = { }
+        self.names = { }
+        self.level = 0
+
+    def __enter__(self):
+        self.levels[self.level] = time.time()
+        self.level += 1
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.level -= 1
+        self.levels[self.level] = time.time() - self.levels[self.level]
+
+        print "{:s} {:s}".format(Timer.format_name(self.names[self.level], self.level),
+                                 Timer.format_time(self.levels[self.level]))
+        return self
+
+    def measured(self, name):
+        self.names[self.level] = name
+        return self
+
+    @staticmethod
+    def format_name(name, level):
+        return "{:80s}".format(level * '  ' + name)
+
+    @staticmethod
+    def format_time(value):
+        n = "{:3.3f} ms".format(value * 1000)
+        return "{0: >15}".format(n)
+
+
+    @staticmethod
+    def measure(method):
+        def timed(*args, **kw):
+            ts = time.time()
+            result = method(*args, **kw)
+            te = time.time()
+            # print '%r (%r, %r) %2.2f sec' % (method.__name__, args, kw, te-ts)
+            print '{:80s} {:s}'.format(method.__name__, Timer.format_time(te - ts))
+            return result
+
+        return timed
+
+
+timer = Timer()
 
 # parse arguments
 def create_parser():
@@ -17,9 +73,9 @@ def create_parser():
                           epilog="If no files are specified all json files in current directory will be selected. \n" +
                                  "Useful when there is not known precise file name only location")
 
-    parser.add_option("-d", "--directory", dest="dirs", default=["./"], action="append",
+    parser.add_option("-d", "--directory", dest="dirs", default=[def_dir], action="append",
                       help="Directory to be searched", metavar="DIR")
-    # /var/www/html/flow-collector-arts
+    #
     parser.add_option("-f", "--file", dest="files", default=['../data/example.json'], action="append",
                       help="Directory to be searched", metavar="FILE")
     parser.add_option("-n", "--non-recursive", dest="non_recursive", default=False, action='store_true',
@@ -30,9 +86,7 @@ def create_parser():
 def parse_args(parser):
     """Parses argument using given parses and check resulting value combination"""
     (options, args) = parser.parse_args()
-
     # for now, no check needed
-
     return (options, args)
 
 
@@ -47,38 +101,54 @@ def read_file(file):
             json_data = json.loads(raw_data, encoding="utf-8", cls=ProfilerJSONDecoder)
             if 'program-name' not in json_data or json_data['program-name'] != 'Flow123d':
                 raise Exception('Unsupported json structure')
-
             return json_data
+
         except Exception as e:
-            print "{:s}: file '{:s}'".format(e, file)
+            # print "error in file '{:s}'".format(e, file)
             return None
 
 
-def process_file(file):
-    json_data = read_file(file)
-    if not json_data:
-        return
-    if False:
-        whole_program = json_data['children'][0]
-        condition_id = mysql_exec.create_conditions(json_data)
-        mysql_exec.create_structure(whole_program, parent=None)
-        mysql_exec.add_measurements(whole_program, condition_id)
-    else:
-        mongo_exec.add_measurements(json_data)
+def process_file(module, json_data):
+    module.process_file(json_data)
 
 
+def read_files(json_files):
+    json_list = list()
+    broken_list = list()
+    for json_file in json_files:
+        json_data = read_file(json_file)
+        if not json_data:
+            broken_list.append(json_file)
+            continue
+
+        json_list.append(json_data)
+    return (json_list, broken_list)
 
 
+def process_all_files(module, json_list):
+    i = 1
+    for json_data in json_list:
+        with timer.measured("file {:>4d} / {:d}".format(i, len(json_list))):
+            process_file(module, json_data)
+        i += 1
 
-if __name__ == '__main__':
-    parser = create_parser()
-    (options, args) = parse_args(parser)
 
-    # print read_file(options.files[0])
+def remove_duplicates(json_files_tmp):
+    json_files = list()
+    for a in json_files_tmp:
+        match = False
+        for b in json_files:
+            # file do not have identical os.stat
+            if filecmp.cmp(a, b, True):
+                match = True
+                break
+        if not match:
+            json_files.append(a)
+    return json_files
 
+
+def fetch_files(options):
     json_files_tmp = list(os.path.realpath(f) for f in options.files)
-
-    print "Fetching json files"
     # traverse root directory, and list directories as dirs and files as files
     for dir in options.dirs:
         for root, dirs, files in os.walk(dir):
@@ -86,31 +156,40 @@ if __name__ == '__main__':
                 # accept json file only (for now)
                 if file.lower().endswith('.json'):
                     json_files_tmp.append(os.path.realpath(os.path.join(root, file)))
+    return json_files_tmp
 
-    print "Removing duplicates"
-    json_files = list()
-    for a in json_files_tmp:
-        match = False
-        for b in json_files:
-            # file do not have identical os.stat
-            if filecmp.cmp(a, b, True):
-                # print '{:s} is same as {:s}'.format(os.path.realpath(a), os.path.realpath(b))
-                match = True
-                break
-        if not match:
-            json_files.append(a)
-    print "  Removed {:d} duplicated json files ({:d}, {:d})".format(len(json_files_tmp) - len(json_files),
-                                                                     len(json_files_tmp), len(json_files))
 
-    print 'Processing files'
-    current_index = 1
-    for json_file in json_files:
-        print "  Processing file {:d}/{:d} '{:s}'".format(current_index, len(json_files), json_file)
-        process_file(json_file)
-        current_index += 1
+if __name__ == '__main__':
+    parser = create_parser()
+    (options, args) = parse_args(parser)
 
-    print 'Commiting changes to DB'
-    mysql_exec.mysql_commit()
+    with timer.measured('WHOLE PROCESS'):
+        with timer.measured('open connection'):
+            # module = MySQLExec()
+            module = MongoExec()
 
-    print 'closing connection to DB'
-    mysql_exec.mysql_close()
+        with timer.measured('fetching files'):
+            json_files_tmp = fetch_files(options)
+
+        with timer.measured('removing duplicates'):
+            json_files = remove_duplicates(json_files_tmp)
+            dupes = len(json_files_tmp) - len(json_files)
+
+
+        with timer.measured('loading json files'):
+            (json_list, broken_list) = read_files(json_files)
+
+        with timer.measured('processing all files'):
+            process_all_files(module, json_list)
+
+        with timer.measured('committing changes'):
+            if commit_data:
+                module.commit()
+            pass
+
+        with timer.measured('closing connection'):
+            module.close()
+
+        print ''
+        print ":: removed {:d} duplicates ({:d}, {:d})".format(dupes, len(json_files_tmp), len(json_files))
+        print ":: {:d} broken files from total of {:d}".format(len(broken_list), len(json_files))
