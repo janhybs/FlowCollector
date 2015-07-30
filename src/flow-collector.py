@@ -4,16 +4,14 @@ import filecmp
 import json
 from optparse import OptionParser
 import os
+import sys
 from mongodb.mongo_exec import MongoExec
-from mysqldb import mysql_exec
-from mongodb import mongo_exec
-from mysqldb.mysql_exec import MySQLExec
 
 from utils.decoder import ProfilerJSONDecoder
 import time
 
 def_dir = '/var/www/html/flow-collector-arts/2015-07-28_11-12-25/tests/02_transport_12d'
-def_dir = '/var/www/html/flow-collector-arts/'
+# def_dir = '/var/www/html/flow-collector-arts/'
 # commit_data = False
 commit_data = True
 # ModCls = MySQLExec
@@ -178,13 +176,56 @@ def run_benchmark(json_list):
 
         avg = (timer.time() / i) * 1000
         print "{:3d}) {:1.6f}".format(i, avg)
-        with open ('benchmark.log', 'a+') as fp:
+        with open('benchmark.log', 'a+') as fp:
             fp.write("{:d},{:1.6f}\n".format(i, avg))
 
 
 if __name__ == '__main__':
     parser = create_parser()
     (options, args) = parse_args(parser)
+
+    mongo = MongoExec()
+    # for item in mongo.cond.find({"run-process-count" : 1}): #
+    # print item
+
+    with timer.measured('fooooooooooo'):
+        result = []
+        for item in mongo.metrics.find({ 'ist_id': ',Whole Program,' }):
+            if mongo.cond.find({ '_id': item['cond_id'], "run-process-count": 3 }).count():
+                result.append(item)
+        print len(result)
+
+    with timer.measured('fooooooooooo'):
+        result = []
+        for item in mongo.metrics.find({ 'ist_id': ',Whole Program,' }):
+            if mongo.cond.find_one({ '_id': item['cond_id'], "run-process-count": 3 }):
+                result.append(item)
+        print len(result)
+
+    with timer.measured('fooooooooooo'):
+        result = []
+        # all 'Whole Program's conditions ids
+        cond_ids1 = list(mongo.pluck_field(id=',Whole Program,', pluck_field='cond_id'))[0]['data']
+        pipeline = [
+            {
+                '$match': {
+                    '_id': { '$in': cond_ids1 },
+                    "run-process-count": 3
+                }
+            },
+            {
+                '$group': {
+                    '_id': '',
+                    'data': { '$push': "$_id" }
+                }
+            }
+        ]
+        cond_ids2 = list(mongo.cond.aggregate(pipeline))[0]['data']
+        for item in mongo.metrics.find({ 'cond_id': { '$in': cond_ids2 }, 'ist_id': ',Whole Program,' }):
+            result.append(item)
+        print len(result)
+
+    sys.exit(0)
 
     with timer.measured('WHOLE PROCESS'):
         with timer.measured('open connection'):
@@ -202,7 +243,6 @@ if __name__ == '__main__':
 
         with timer.measured('processing all files'):
             process_all_files(module, json_list)
-
         # run_benchmark(json_list)
 
         with timer.measured('committing changes'):
