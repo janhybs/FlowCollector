@@ -14,28 +14,33 @@ import time
 
 def_dir = '/var/www/html/flow-collector-arts/2015-07-28_11-12-25/tests/02_transport_12d'
 def_dir = '/var/www/html/flow-collector-arts/'
-commit_data = False
+# commit_data = False
 commit_data = True
+# ModCls = MySQLExec
+ModCls = MongoExec
 
 
 class Timer(object):
     def __init__(self):
-        self.levels = { }
+        self.times = { }
         self.names = { }
         self.level = 0
 
     def __enter__(self):
-        self.levels[self.level] = time.time()
+        self.times[self.level] = time.time()
         self.level += 1
         return self
 
     def __exit__(self, exception_type, exception_value, traceback):
         self.level -= 1
-        self.levels[self.level] = time.time() - self.levels[self.level]
+        self.times[self.level] = time.time() - self.times[self.level]
 
         print "{:s} {:s}".format(Timer.format_name(self.names[self.level], self.level),
-                                 Timer.format_time(self.levels[self.level]))
+                                 Timer.format_time(self.times[self.level]))
         return self
+
+    def time(self):
+        return self.times[self.level]
 
     def measured(self, name):
         self.names[self.level] = name
@@ -109,7 +114,10 @@ def read_file(file):
 
 
 def process_file(module, json_data):
-    module.process_file(json_data)
+    try:
+        module.process_file(json_data)
+    except Exception as e:
+        print e
 
 
 def read_files(json_files):
@@ -159,14 +167,28 @@ def fetch_files(options):
     return json_files_tmp
 
 
+def run_benchmark(json_list):
+    total = len(json_list)
+    total = 150
+
+    for i in range(2, total):
+        with timer.measured("benchmark with {:03d} files".format(i)):
+            for j in range(0, i):
+                module.process_file(json_list[j])
+
+        avg = (timer.time() / i) * 1000
+        print "{:3d}) {:1.6f}".format(i, avg)
+        with open ('benchmark.log', 'a+') as fp:
+            fp.write("{:d},{:1.6f}\n".format(i, avg))
+
+
 if __name__ == '__main__':
     parser = create_parser()
     (options, args) = parse_args(parser)
 
     with timer.measured('WHOLE PROCESS'):
         with timer.measured('open connection'):
-            # module = MySQLExec()
-            module = MongoExec()
+            module = ModCls()
 
         with timer.measured('fetching files'):
             json_files_tmp = fetch_files(options)
@@ -175,12 +197,13 @@ if __name__ == '__main__':
             json_files = remove_duplicates(json_files_tmp)
             dupes = len(json_files_tmp) - len(json_files)
 
-
         with timer.measured('loading json files'):
             (json_list, broken_list) = read_files(json_files)
 
         with timer.measured('processing all files'):
             process_all_files(module, json_list)
+
+        # run_benchmark(json_list)
 
         with timer.measured('committing changes'):
             if commit_data:
