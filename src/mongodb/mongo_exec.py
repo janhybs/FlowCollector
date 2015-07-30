@@ -1,8 +1,10 @@
 # encoding: utf-8
 # author:   Jan Hybs
+from bson.regex import Regex
 
 import pymongo
 from pymongo import MongoClient
+import re
 
 
 class MongoExec(object):
@@ -16,9 +18,10 @@ class MongoExec(object):
 
     def process_file(self, json_data):
         whole_program = json_data['children'][0]
-        self.ensure_structure(whole_program)
         cond_id = self.create_conditions(json_data)
-        self.insert_data(whole_program, cond_id)
+
+        self.ensure_structure_path(whole_program, path=None, cond_id=cond_id)
+        # self.insert_data(whole_program, cond_id)
 
     def close(self):
         pass
@@ -27,8 +30,49 @@ class MongoExec(object):
         pass
 
 
-    # ------------------------------
+    # ------------------------------ // db.cond.aggregate({$group: {_id: "", max: {$avg: "$task-size"}
 
+
+    def ensure_structure_path(self, json_data, cond_id, path=None):
+        tag = json_data['tag']
+        if not path:
+            ist_id = ",{:s},".format(tag)
+        else:
+            ist_id = "{:s}{:s},".format(path, tag)
+            parent = self.ist.find_one({ '_id': path })
+            # if parent is valid
+            if parent:
+                # and current reference is not in parents children list
+                if ist_id not in parent['children']:
+                    self.ist.update_one({ '_id': path }, {
+                        "$push": {
+                            "children": ist_id
+                        }
+                    })
+
+        result = self.ist.find_one({ '_id': ist_id })
+
+        # if no such tag exists
+        if not result:
+            # create one
+            self.ist.insert_one({
+                '_id': ist_id,
+                'tag': json_data['tag'],  # save parsing path
+                'children': [],  # save one potential query for children lookup
+                'parent': path
+            })
+
+        data = json_data.copy()
+        data.update({
+            'ist_id': ist_id,
+            'cond_id': cond_id
+        })
+        data.pop('children', None)
+        self.metrics.insert_one(data)
+
+        if 'children' in json_data:
+            for child in json_data['children']:
+                self.ensure_structure_path(child, cond_id, ist_id)
 
     def ensure_structure(self, json_data, parent=None):
         _id = json_data['tag']
@@ -41,7 +85,7 @@ class MongoExec(object):
             self.ist.insert_one({
                 '_id': json_data['tag'],
                 'parent': _parent_id,
-                'children': [] # save one potential query for children lookup
+                'children': []  # save one potential query for children lookup
             })
         # if tag exists
         else:
@@ -80,7 +124,6 @@ class MongoExec(object):
         data.pop('children', None)
         self.metrics.insert_one(data)
 
-
         if 'children' in json_data:
             for child in json_data['children']:
                 self.insert_data(child, cond_id)
@@ -93,16 +136,54 @@ class MongoExec(object):
                 # inserted_id = self.collection.insert_one(data).inserted_id
                 #
                 # if 'children' in json_data:
-                #         for child in json_data['children']:
-                #             self.add_measurement(child, inserted_id)
+                # for child in json_data['children']:
+                # self.add_measurement(child, inserted_id)
                 #
                 # def add_measurement(self, json_data, parent_id):
-                #     data = json_data.copy()
-                #     data.pop('children', None)
-                #     data['parent'] = parent_id
-                #     # data['_id'] = data.pop('tag')
-                #     inserted_id = self.collection.insert_one(data).inserted_id
+                # data = json_data.copy()
+                # data.pop('children', None)
+                # data['parent'] = parent_id
+                # # data['_id'] = data.pop('tag')
+                # inserted_id = self.collection.insert_one(data).inserted_id
                 #
-                #     if 'children' in json_data:
-                #         for child in json_data['children']:
-                #             self.add_measurement(child, inserted_id)
+                # if 'children' in json_data:
+                # for child in json_data['children']:
+                # self.add_measurement(child, inserted_id)
+
+    def get_ist_item(self, path=",Whole Program,", starting=False, ending=True):
+        if type(path) is not list:
+            path = [path]
+
+        patterns = []
+        for p in path:
+            patterns.append(("^" if starting else "") + p + ("$" if ending else ""))
+
+        pattern = re.compile("|".join(patterns))
+        regex = Regex.from_native(pattern)
+        regex.flags ^= re.UNICODE
+        return self.ist.find({ "_id": regex })
+
+    def get_ist_by_id(self, id=",Whole Program,"):
+        return self.ist.find_one({ "_id": id })
+
+    def pluck_field(self, id=",Whole Program,", field="cumul-time", collection='metrics', match_field='ist_id'):
+
+        pipeline = [
+            {
+                '$match': { match_field: id }
+            },
+            {
+                '$group': {
+                    '_id': '$ist_id',
+                    'data': { '$push': "$" + field }
+                }
+            }
+        ]
+        # print 'db.metrics.aggregate({:s})'.format(pipeline)
+        if collection == 'metrics':
+            return self.metrics.aggregate(pipeline)
+        if collection == 'cond':
+            return self.cond.aggregate(pipeline)
+        if collection == 'ist':
+            return self.ist.aggregate(pipeline)
+
