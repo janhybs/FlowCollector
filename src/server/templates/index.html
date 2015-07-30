@@ -59,6 +59,7 @@
       {% endblock %} <!-- flash -->
 
       {% block content %}
+        <canvas id="myChart" width="400" height="400"></canvas>
         {{ content|safe }}
       {% endblock %} <!-- content -->
 
@@ -67,6 +68,9 @@
       <script src="/static/js/frameworks/underscore.js"></script>
       <script src="/static/js/frameworks/bootstrap.min.js"></script>
       <script src="/static/js/utils.js"></script>
+      <script src="/static/js/collapsible.min.js"></script>
+      <script src="/static/js/chart.min.js"></script>
+      <script src="/static/js/main.js"></script>
       {% endblock %}
     </div>
   </div>
