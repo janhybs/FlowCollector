@@ -1,0 +1,258 @@
+.container-fluid {
+    margin-right: auto;
+    margin-left: auto;
+    max-width: 1050px;
+}
+
+.jumbotron p {
+    font-size: 14px;
+}
+
+.debug {
+    border: 1px solid red;
+}
+
+/* job list */
+.job-list h3 {
+    display: inline;
+}
+
+.job-list li {
+    clear: right;
+}
+
+.job-list .glyphicon {
+    font-size: .7em;
+}
+
+.job-list .detail {
+}
+
+.job-list, .job-list ul, #job-view ul, #job-view ol {
+    padding-left: 0;
+    list-style: none;
+    margin-bottom: 0;
+}
+
+.job-list ul {
+    padding-left: 15px;
+}
+
+.job-list > li {
+    margin-bottom: 8px;
+}
+
+.job-list p {
+    padding: 0;
+    margin: 0;
+}
+
+.job-list abbr[title] {
+    cursor: help;
+    border-bottom: none;
+}
+
+
+
+/* job peek */
+#job-list .job-link, #job-list .job-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+#job-list .job-link:focus, #job-list .job-link:hover {
+    background: #DDD;
+    color: inherit;
+}
+
+
+#job-list .selected {
+    background: #777 !important;
+    color: #EEE !important;
+}
+
+#job-list .selected small {
+    color: #FFF !important;
+}
+
+.disabled {
+    opacity: .5;
+}
+
+/* job */
+
+.job-content .delete-job {
+    padding: 0;
+    opacity: .50;
+}
+
+.job-content .delete-job:hover {
+    opacity: 1;
+}
+
+/* script */
+
+.script .btn-group {
+    margin-top: 10px;
+}
+
+.script-details .progress {
+    clear: both;
+}
+
+.script-details .progress {
+    height: 8px;
+    margin-top: 10px;
+
+}
+
+.script-details .progress-bar {
+    transition: width .3s ease;
+}
+
+.script .info-name {
+    font-weight: bold;
+}
+
+.script .info-value:after {
+    content: " | ";
+    padding: 0 10px;
+    color: #999;
+    font-size: 0.7em;
+}
+
+.script .info-value:last-of-type:after {
+    content: "";
+}
+
+.script {
+    margin: 0 0 50px;
+}
+
+.script-info {
+    margin: 20px 0 10px;
+}
+
+.script-commands, .script-info {
+    clear: both;
+}
+
+.script .script-editable-commands textarea {
+    font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+    line-height: 28px;
+    font-size: 12px;
+}
+
+/* command */
+.script-commands .running:before {
+    background: #72A172;
+    color: #FFF !important;
+}
+
+.script-commands .queued {
+    opacity: 0.5;
+}
+
+.script-commands {
+    counter-reset: line-numbering;
+    clear: right;
+}
+
+.script-commands>div>li:hover {
+    background: #DDD;
+}
+
+.script-commands>div>li, .script-commands .stdout-stderr {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: #EEE;
+    /* line-height: 20px; */
+}
+
+.script-commands .stdout-stderr {
+    background: #FFF;
+}
+
+.script-commands li:before {
+    content: counter(line-numbering);
+    counter-increment: line-numbering;
+    padding-right: 10px;
+    color: #999;
+    text-align: right;
+    display: inline-block;
+    min-width: 40px;
+}
+
+.script-commands li .source, .script-commands li .info {
+    display: inline-block;
+    height: 28px;
+    line-height: 28px;
+    color: #333;
+    background: none;
+}
+
+
+.script-commands li .info {
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 0.7em;
+    height: 24px;
+    line-height: 22px;
+    color: #3a2825;
+    background: #d7cbc8;
+    padding: 2px 6px 2px 6px;
+    margin: 2px 5px 2px 0;
+}
+
+.script-commands li .exit-info {
+    background: #D9534F;
+    color: #FFF;
+    font-weight: bold;
+}
+
+.script-commands .non-collapsible-command:before {
+
+}
+
+.script-commands code.source:before {
+  content: " > ";
+  color: #AAA;
+}
+
+.script-commands .collapsible-command:before {
+    border-left:  5px solid #666;
+}
+
+.script-commands .collapsible-command:before, .script-commands .non-collapsible-command:before {
+
+    color: #AAA;
+    font-size: 12px;
+    line-height: 24px;
+}
+
+.script-commands .stdout-stderr pre {
+    display: block;
+    border: none;
+    padding: 5px;
+    margin: 0 0 0 40px ;
+    border-radius: 0;
+    font-size: 0.8em;
+    white-space: nowrap;
+}
+
+.script-commands .stdout-stderr .command-output-stderr {
+    border-left: 5px solid #F58C8C;
+    background: #F7E8E8;
+    color: #c7254e;
+}
+
+.script-commands .stdout-stderr .command-output-stdout {
+    border-left: 5px solid #62c32a;
+    background: #e8f7d9;
+    color: #4e8822;
+}
+
+.collapsible-closed {
+    display: none;
+    clear: right;
+}

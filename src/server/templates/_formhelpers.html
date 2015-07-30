@@ -1,0 +1,24 @@
+{% macro render_field(field) %}
+    <div class="form-group">
+        {{ field.label }}
+        {{ field(**kwargs)|safe }}
+    </div>
+      {% if field.errors %}
+        <div class="list-group">
+        {% for error in field.errors %}
+            <div class="list-group-item list-group-item-danger">{{ error }}</div>
+        {% endfor %}
+        </div>
+      {% endif %}
+{% endmacro %}
+
+{% macro h1 (title) %}
+  <h1>
+    {% if not request.path == url_for('main') %}
+      <a href="{{ url_for('main') }}" title="go back" class="btn btn-default btn-lg">
+        <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+      </a>
+    {% endif %}
+  {{ title|safe }}
+  </h1>
+{% endmacro %}
