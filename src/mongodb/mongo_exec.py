@@ -41,8 +41,7 @@ class MongoExec(object):
             self.ist.insert_one({
                 '_id': json_data['tag'],
                 'parent': _parent_id,
-                'children': [],
-                'data': []
+                'children': [] # save one potential query for children lookup
             })
         # if tag exists
         else:
@@ -74,18 +73,13 @@ class MongoExec(object):
 
     def insert_data(self, json_data, cond_id):
         data = json_data.copy()
-        data.pop('children', None)
-        metric_id = self.metrics.insert_one(data).inserted_id
-
-        _id = json_data['tag']
-        self.ist.update_one({ '_id': _id }, {
-            "$push": {
-                'data': {
-                    'metric_id': metric_id,
-                    'cond_id': cond_id
-                }
-            }
+        data.update({
+            'ist_id': json_data['tag'],
+            'cond_id': cond_id
         })
+        data.pop('children', None)
+        self.metrics.insert_one(data)
+
 
         if 'children' in json_data:
             for child in json_data['children']:
