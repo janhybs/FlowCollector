@@ -202,9 +202,34 @@ if __name__ == '__main__':
                 result.append(item)
         print len(result)
 
-    with timer.measured('fooooooooooo'):
+    with timer.measured('ffffffffffffff'):
         result = []
         # all 'Whole Program's conditions ids
+        try:
+            conditions_ids = mongo.pluck_fields (
+                collection=mongo.metrics,
+                fields=["cond_id"],
+                match={'ist_id': ',Whole Program,'},
+                group='$ist_id'
+            )['cond_id']
+
+            metrics_id = mongo.pluck_fields (
+                collection=mongo.cond,
+                fields=['_id'],
+                match={
+                    '_id': { '$in': conditions_ids },
+                    "run-process-count": 3
+                    },
+                group=''
+            )['data']
+            for item in mongo.metrics.find({ 'cond_id': { '$in': metrics_id }, 'ist_id': ',Whole Program,' }):
+                result.append(item)
+            print len(result)
+        except Exception as e:
+            print e
+
+        sys.exit (0)
+        """
         cond_ids1 = list(mongo.pluck_field(id=',Whole Program,', pluck_field='cond_id'))[0]['data']
         pipeline = [
             {
@@ -224,7 +249,7 @@ if __name__ == '__main__':
         for item in mongo.metrics.find({ 'cond_id': { '$in': cond_ids2 }, 'ist_id': ',Whole Program,' }):
             result.append(item)
         print len(result)
-
+        """
     sys.exit(0)
 
     with timer.measured('WHOLE PROCESS'):

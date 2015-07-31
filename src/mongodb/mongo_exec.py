@@ -166,7 +166,29 @@ class MongoExec(object):
     def get_ist_by_id(self, id=",Whole Program,"):
         return self.ist.find_one({ "_id": id })
 
-    def pluck_field(self, id=",Whole Program,", field="cumul-time", collection='metrics', match_field='ist_id'):
+    def pluck_fields(self, collection=None, fields=['cumul-time', 'call-count'], group=None, match=None):
+        collection = self.metrics if collection is None else collection
+
+        # single fields converts to list
+        # simple string match converts to _id search
+        fields = [fields] if type(fields) is not list else fields
+        match = {'_id': match} if type(match) is str else match
+
+        # create match and group object
+        match_dict = { '$match': match }
+        group_dict = { '$group': { '_id': group }}
+
+        # add fields
+        for field in fields:
+            group_dict['$group']['data' if field == '_id' else field] = { '$push':'$' + field }
+
+        # create pipeline and send command
+        pipeline = [match_dict, group_dict]
+        # print pipeline
+        return list(collection.aggregate (pipeline))[0]
+
+
+    def pluck_field(self, id=",Whole Program,", pluck_field="cumul-time", collection='metrics', match_field='ist_id'):
 
         pipeline = [
             {
@@ -175,7 +197,7 @@ class MongoExec(object):
             {
                 '$group': {
                     '_id': '$ist_id',
-                    'data': { '$push': "$" + field }
+                    'data': { '$push': "$" + pluck_field }
                 }
             }
         ]
@@ -186,4 +208,3 @@ class MongoExec(object):
             return self.cond.aggregate(pipeline)
         if collection == 'ist':
             return self.ist.aggregate(pipeline)
-
