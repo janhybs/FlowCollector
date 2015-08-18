@@ -29,6 +29,11 @@ class MongoExec(object):
     def commit(self):
         pass
 
+    def clean_database (self):
+        print self.ist.remove ({})
+        print self.metrics.remove ({})
+        print self.cond.remove ({})
+
 
     # ------------------------------ // db.cond.aggregate({$group: {_id: "", max: {$avg: "$task-size"}
 
@@ -127,28 +132,6 @@ class MongoExec(object):
         if 'children' in json_data:
             for child in json_data['children']:
                 self.insert_data(child, cond_id)
-
-                # def add_measurements(self, json_data):
-                # data = json_data.copy()
-                # data.pop('children', None)
-                # # data['_id'] = data['task-description']
-                #
-                # inserted_id = self.collection.insert_one(data).inserted_id
-                #
-                # if 'children' in json_data:
-                # for child in json_data['children']:
-                # self.add_measurement(child, inserted_id)
-                #
-                # def add_measurement(self, json_data, parent_id):
-                # data = json_data.copy()
-                # data.pop('children', None)
-                # data['parent'] = parent_id
-                # # data['_id'] = data.pop('tag')
-                # inserted_id = self.collection.insert_one(data).inserted_id
-                #
-                # if 'children' in json_data:
-                # for child in json_data['children']:
-                # self.add_measurement(child, inserted_id)
 
     def get_ist_item(self, path=",Whole Program,", starting=False, ending=True):
         if type(path) is not list:
