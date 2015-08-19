@@ -4,11 +4,11 @@ import filecmp
 import json
 from optparse import OptionParser
 import os
-import sys
-from mongodb.mongo_exec import MongoExec
 
+from mongodb.mongo_exec import MongoExec
 from utils.decoder import ProfilerJSONDecoder
-import time
+from utils.timer import Timer
+
 
 def_dir = '/var/www/html/flow-collector-arts/2015-07-28_11-12-25/tests/02_transport_12d'
 # def_dir = '/var/www/html/flow-collector-arts/'
@@ -16,56 +16,6 @@ commit_data = False
 # commit_data = True
 # ModCls = MySQLExec
 ModCls = MongoExec
-
-
-class Timer(object):
-    def __init__(self):
-        self.times = { }
-        self.names = { }
-        self.level = 0
-
-    def __enter__(self):
-        self.times[self.level] = time.time()
-        self.level += 1
-        return self
-
-    def __exit__(self, exception_type, exception_value, traceback):
-        self.level -= 1
-        self.times[self.level] = time.time() - self.times[self.level]
-
-        print "{:s} {:s}".format(Timer.format_name(self.names[self.level], self.level),
-                                 Timer.format_time(self.times[self.level]))
-        return self
-
-    def time(self):
-        return self.times[self.level]
-
-    def measured(self, name):
-        self.names[self.level] = name
-        return self
-
-    @staticmethod
-    def format_name(name, level):
-        return "{:80s}".format(level * '  ' + name)
-
-    @staticmethod
-    def format_time(value):
-        n = "{:3.3f} ms".format(value * 1000)
-        return "{0: >15}".format(n)
-
-
-    @staticmethod
-    def measure(method):
-        def timed(*args, **kw):
-            ts = time.time()
-            result = method(*args, **kw)
-            te = time.time()
-            # print '%r (%r, %r) %2.2f sec' % (method.__name__, args, kw, te-ts)
-            print '{:80s} {:s}'.format(method.__name__, Timer.format_time(te - ts))
-            return result
-
-        return timed
-
 
 timer = Timer()
 

@@ -2,6 +2,7 @@
 # author:   Jan Hybs
 
 import mysql.connector
+
 from config import credentials
 from mysqldb.mysql_query import insert_condition_fields, insert_condition_query, insert_measurement_query, \
     insert_structure_query

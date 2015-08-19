@@ -1,6 +1,8 @@
 import functools
 import json
+
 from flask import render_template, request, Response, url_for, g
+
 from server import app
 
 

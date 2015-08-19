@@ -1,10 +1,9 @@
 # encoding: utf-8
 # author:   Jan Hybs
-from bson.regex import Regex
-
-import pymongo
-from pymongo import MongoClient
 import re
+
+from bson.regex import Regex
+from pymongo import MongoClient
 
 
 class MongoExec(object):

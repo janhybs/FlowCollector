@@ -2,6 +2,7 @@
 # author:   Jan Hybs
 from flask.templating import render_template
 import markdown
+
 from server import app, mongo
 from server.utils.flask_utils import with_title
 
