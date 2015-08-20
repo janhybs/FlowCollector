@@ -319,7 +319,7 @@ def main():
             clockrate_result = { 'architecture': info, 'tests': test_results }
 
             try:
-                with open('node_test.json', 'w') as fp:
+                with open('node_test.json', 'w+') as fp:
                     json.dump(clockrate_result, fp, indent=4, sort_keys=True)
             except Exception as er:
                 print 'Error while saving file'
@@ -327,7 +327,7 @@ def main():
 
             if print_output:
                 try:
-                    with open('node_test.json', 'r') as fp:
+                    with open('node_test.json', 'r+') as fp:
                         print fp.read()
                 except Exception as er:
                     print 'Error while reading file'
