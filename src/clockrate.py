@@ -13,7 +13,7 @@ from subprocess import check_output
 try:
     import psutil
 except ImportError as e:
-    import utils.psutil as psutil
+    import utils.simple_psutil as psutil
 
 try:
     from pluck import pluck
