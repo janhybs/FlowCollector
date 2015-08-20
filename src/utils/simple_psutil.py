@@ -3,7 +3,7 @@
 
 from subprocess import check_output
 from utils.strings import extract_number
-
+from collections import namedtuple
 
 def cpu_count(logical=True):
     return int(
@@ -13,7 +13,5 @@ def cpu_count(logical=True):
 
 def virtual_memory():
     memory_info = check_output('cat /proc/meminfo', shell=True).strip()
-    return {
-        'available': extract_number(memory_info, 'MemFree'),
-        'total': extract_number(memory_info, 'MemTotal'),
-    }
+    info = namedtuple ('memory', ['available', 'total'])
+    return info (extract_number(memory_info, 'MemFree'), extract_number(memory_info, 'MemTotal'))
