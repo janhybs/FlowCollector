@@ -15,7 +15,10 @@ try:
 except ImportError as e:
     import utils.psutil as psutil
 
-from pluck import pluck
+try:
+    from pluck import pluck
+except ImportError as e:
+    from utils.pluck import pluck
 
 from utils.timer import Timer
 from utils.progressbar import ProgressBar
