@@ -250,7 +250,7 @@ def main():
     (options, args, includes) = parse_args(parser)
 
     try:
-        with timer.measured('node-performance', print_output):
+        # with timer.measured('node-performance', print_output):
             if print_output:
                 print "{:-^55}".format("Running tests")
                 print "{:-^55}".format(str(includes))
