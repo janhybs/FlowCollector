@@ -132,7 +132,7 @@ class BenchmarkMeasurement(object):
         tries = tries if tries is not None else self.tries
         processes = processes if processes is not None else self.processes
 
-        pb = ProgressBar(maximum=tries, width=30, prefix="{self.name:20}",
+        pb = ProgressBar(maximum=tries, width=30, prefix="{self.name:25}",
                          suffix=" {self.last_progress}/{self.maximum}")
 
         measure_result = list()
@@ -200,6 +200,8 @@ def create_parser():
                       help="Turn on specific tests, by default all tests are included")
     parser.add_option("-x", "--exclude", dest="excludes", metavar="TESTNAME", default=[], action="append",
                       help="Turn off specific tests")
+    parser.add_option("-c", "--core", dest="cores", metavar="CORE", default=[], action="append",
+                      help="Try test with this amount of core, by default 1...N, where N is maximum cores available")
 
     parser.add_option("-d", "--duration", dest="timeout", metavar="DURATION", default=0.3,
                       help="Maximum duration per one test case")
@@ -222,6 +224,11 @@ def parse_args(parser):
     if options.excludes:
         includes = includes - set(options.excludes)
 
+    if not options.cores:
+        options.cores = range(1, psutil.cpu_count(logical=True) + 1)
+    else:
+        options.cores = [int(value) for value in options.cores]
+
     options.tries = int(options.tries)
     options.timeout = float(options.timeout)
     print_output = options.quiet
@@ -243,7 +250,7 @@ def main():
                 print "{:-^55}".format(str(includes))
 
             measurement = BenchmarkMeasurement()
-            measurement.configure(options.timeout, options.tries, range(1, psutil.cpu_count(logical=True) + 1))
+            measurement.configure(options.timeout, options.tries, options.cores)
 
             test_results = dict()
             if 'for-loop' in includes:

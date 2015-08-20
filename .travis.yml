@@ -9,5 +9,5 @@ install:
 # command to run tests
 script: 
   - cd src
-  - python clockrate.py
-  - python clockrate.py -i 'for-loop' -d 5 -t 1
+  - python clockrate.py -c 1 -c 2 -c 4
+  - python clockrate.py -i 'for-loop' -c 64 -c 32 -c 16 -c 8 -c 4 -c 2 -c 1
