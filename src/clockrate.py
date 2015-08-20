@@ -203,9 +203,9 @@ def create_parser():
     parser.add_option("-c", "--core", dest="cores", metavar="CORE", default=[], action="append",
                       help="Try test with this amount of core, by default 1...N, where N is maximum cores available")
 
-    parser.add_option("-d", "--duration", dest="timeout", metavar="DURATION", default=0.3,
+    parser.add_option("-d", "--duration", dest="timeout", metavar="DURATION", default=0.4,
                       help="Maximum duration per one test case")
-    parser.add_option("-t", "--tries", dest="tries", metavar="TRIES", default=5,
+    parser.add_option("-t", "--tries", dest="tries", metavar="TRIES", default=2,
                       help="Number of tries for each test")
     parser.add_option("-q", "--quiet", dest="quiet", default=True, action="store_false",
                       help="Do not print any output")
