@@ -25,7 +25,7 @@ class AbstractProcess(Process):
     def __init__(self, ):
         Process.__init__(self)
         self.exit = Event()
-        self.result = Value('i', 0)
+        self.result = Value('f', 0)
         self.terminated = None
 
     def run(self):
