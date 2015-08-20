@@ -10,9 +10,12 @@ import json
 import platform
 from subprocess import check_output
 
-import psutil
+try:
+    import psutil
+except ImportError as e:
+    import utils.psutil as psutil
+
 from pluck import pluck
-import sys
 
 from utils.timer import Timer
 from utils.progressbar import ProgressBar
