@@ -11,7 +11,7 @@ import platform
 from subprocess import check_output
 
 try:
-    import psutil
+    import psutilcas
 except ImportError as e:
     import utils.simple_psutil as psutil
 

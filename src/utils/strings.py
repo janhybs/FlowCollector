@@ -10,4 +10,4 @@ def extract_number(data, name):
         if line.find(name) != -1:
             match = re.match(r'.*\D(\d+)\D*', line)
             if match:
-                return match.group(1)
+                return float(match.group(1))
