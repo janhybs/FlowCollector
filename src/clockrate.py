@@ -125,78 +125,70 @@ class BenchmarkMeasurement(object):
     def __init__(self):
         self.timeout = .5
         self.tries = 3
+        self.processes = 1
 
-    def run(self, target, timeout, name="method name"):
-        result = { 'value': None, 'exit': None, 'value': None }
-
-        with timer.measured(name, False):
-            target.start()
-            time.sleep(timeout)
-            target.shutdown()
-            target.join()
-
-        result['duration'] = timer.time()
-        result['value'] = target.result.value
-        result['exit'] = not target.terminated
-
-        return result
-
-    def measure(self, cls, name, timeout=None, tries=None):
+    def measure(self, cls, name, timeout=None, tries=None, processes=None):
         timeout = timeout if timeout is not None else self.timeout
         tries = tries if tries is not None else self.tries
+        processes = processes if processes is not None else self.processes
 
         pb = ProgressBar(maximum=tries, width=30, prefix="{self.name:20}",
                          suffix=" {self.last_progress}/{self.maximum}")
-        pb.name = name
 
-        results = list()
-        for i in range(0, tries):
+        measure_result = list()
+        for no_cpu in processes:
+            pb.name = "{:s} {:d} {:s}".format(name, no_cpu, 'core' if no_cpu == 1 else 'cores')
+            results = list()
+            for i in range(0, tries):
+                if print_output:
+                    pb.progress(i)
+
+                targets = [cls() for j in range(0, no_cpu)]
+
+                with timer.measured("{:s} {:d}".format(name, i), False):
+                    # start processes
+                    for target in targets:
+                        target.start()
+
+                    # wait for timeout
+                    time.sleep(timeout)
+
+                    # send exit status
+                    for target in targets:
+                        target.shutdown()
+
+                    # join threads
+                    for target in targets:
+                        target.join()
+
+                tmp = dict()
+                tmp['duration'] = timer.time()
+                tmp['value'] = sum(pluck(targets, 'result.value'))
+                tmp['exit'] = not max(pluck(targets, 'terminated'))
+                results.append(tmp)
+
             if print_output:
-                pb.progress(i)
-            tmp = self.run(cls(), name=name + str(i + 1), timeout=timeout)
-            results.append(tmp)
+                pb.end()
 
-        if print_output:
-            pb.end()
+            result = dict()
+            result['exit'] = min(pluck(results, 'exit'))
+            result['value'] = sum(pluck(results, 'value')) / float(tries)
+            result['duration'] = sum(pluck(results, 'duration')) / float(tries)
+            result['performance'] = result['value'] / result['duration']
+            result['processes'] = no_cpu
 
-        result = dict()
-        result['exit'] = min(pluck(results, 'exit'))
-        result['value'] = sum(pluck(results, 'value')) / float(tries)
-        result['duration'] = sum(pluck(results, 'duration')) / float(tries)
-        result['performance'] = result['value'] / result['duration']
+            measure_result.append(result)
 
-        return result
-        # print tests
+        return measure_result
 
-    def configure(self, timeout, tries):
+
+    def configure(self, timeout, tries, processes):
         self.timeout = timeout
         self.tries = tries
+        self.processes = processes if type(processes) is list else [processes]
 
 
-# import os, platform, subprocess, re
-#
-# def get_processor_name():
-# if platform.system() == "Windows":
-# return platform.processor()
-# elif platform.system() == "Darwin":
-# import os
-#         os.environ['PATH'] = os.environ['PATH'] + os.pathsep + '/usr/sbin'
-#         command ="sysctl -n machdep.cpu.brand_string"
-#         return subprocess.check_output(command).strip()
-#     elif platform.system() == "Linux":
-#         command = "cat /proc/cpuinfo"
-#         all_info = subprocess.check_output(command, shell=True).strip()
-#         for line in all_info.split("\n"):
-#             if "model name" in line:
-#                 return re.sub( ".*model name.*:", "", line,1)
-#     return ""
-#
-# print get_processor_name()
-
-# print info
-# print tests
 print_output = True
-
 all_tests = set(['for-loop', 'factorial', 'hash-sha', 'matrix-creation', 'matrix-solve', 'string-concat'])
 
 
@@ -251,26 +243,26 @@ def main():
                 print "{:-^55}".format(str(includes))
 
             measurement = BenchmarkMeasurement()
-            measurement.configure(options.timeout, options.tries)
+            measurement.configure(options.timeout, options.tries, range(1, psutil.cpu_count(logical=True) + 1))
 
             test_results = dict()
             if 'for-loop' in includes:
-                test_results['for-loop'] = measurement.measure(ForLoop, 'For loop ')
+                test_results['for-loop'] = measurement.measure(ForLoop, 'For loop')
 
             if 'factorial' in includes:
-                test_results['factorial'] = measurement.measure(Factorial, 'Factorial ')
+                test_results['factorial'] = measurement.measure(Factorial, 'Factorial')
 
             if 'hash-sha' in includes:
-                test_results['hash-sha'] = measurement.measure(HashSHA, 'Hash ')
+                test_results['hash-sha'] = measurement.measure(HashSHA, 'Hash')
 
             if 'matrix-creation' in includes:
-                test_results['matrix-creation'] = measurement.measure(MatrixCreate, 'Matrix create ')
+                test_results['matrix-creation'] = measurement.measure(MatrixCreate, 'Matrix create')
 
             if 'matrix-solve' in includes:
-                test_results['matrix-solve'] = measurement.measure(MatrixSolve, 'Matrix solve ')
+                test_results['matrix-solve'] = measurement.measure(MatrixSolve, 'Matrix solve')
 
             if 'string-concat' in includes:
-                test_results['string-concat'] = measurement.measure(StringConcat, 'String concat ')
+                test_results['string-concat'] = measurement.measure(StringConcat, 'String concat')
 
             if print_output:
                 print "\n{:-^55}".format("Getting node info")
