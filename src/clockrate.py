@@ -334,6 +334,9 @@ def main():
                     print 'Error while reading file'
                     raise er
 
+            if print_output:
+                print "\n{:-^55}".format("Benchmark test finished")
+
     except Exception as e:
         print e
         raise e
