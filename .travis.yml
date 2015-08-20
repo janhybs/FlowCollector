@@ -10,3 +10,4 @@ install:
 script: 
   - cd src
   - python clockrate.py
+  - python clockrate.py -i 'for-loop' -d 5 -t 1
