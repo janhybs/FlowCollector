@@ -320,7 +320,8 @@ def main():
 
             try:
                 with open('node_test.json', 'w+') as fp:
-                    json.dump(clockrate_result, fp, indent=4, sort_keys=True)
+                    # json.dump(clockrate_result, fp, indent=4, sort_keys=True)
+                    fp.write('fooooooooooo')
             except Exception as er:
                 print 'Error while saving file'
                 raise er
