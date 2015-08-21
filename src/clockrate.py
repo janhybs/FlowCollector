@@ -11,14 +11,16 @@ import platform
 from subprocess import check_output
 
 try:
-    import psutilcas
+    import psutil
 except ImportError as e:
     import utils.simple_psutil as psutil
+    print 'psutil lib missing, using simple_psutil'
 
 try:
     from pluck import pluck
 except ImportError as e:
     from utils.pluck import pluck
+    print 'pluck lib missing, using local copy'
 
 from utils.timer import Timer
 from utils.progressbar import ProgressBar
