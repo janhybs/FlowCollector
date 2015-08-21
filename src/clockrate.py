@@ -9,6 +9,7 @@ import re
 import json
 import platform
 from subprocess import check_output
+from utils.strings import human_readable
 
 try:
     import psutil
@@ -179,11 +180,16 @@ class BenchmarkMeasurement(object):
                 pb.end()
 
             result = dict()
-            result['exit'] = min(pluck(results, 'exit'))
-            result['value'] = sum(pluck(results, 'value')) / float(tries)
-            result['duration'] = sum(pluck(results, 'duration')) / float(tries)
-            result['performance'] = result['value'] / result['duration']
             result['processes'] = no_cpu
+            result['exit'] = min(pluck(results, 'exit'))
+            result['duration'] = sum(pluck(results, 'duration')) / float(tries)
+            result['value'] = sum(pluck(results, 'value')) / float(tries)
+            result['performance'] = result['value'] / result['duration']
+
+
+            if human_format:
+                result['value'] = human_readable(result['value'])
+                result['performance'] = human_readable(result['performance'])
 
             measure_result.append(result)
 
@@ -197,6 +203,7 @@ class BenchmarkMeasurement(object):
 
 
 print_output = True
+human_format = False
 all_tests = set(['for-loop', 'factorial', 'hash-sha', 'matrix-creation', 'matrix-solve', 'string-concat'])
 
 
@@ -217,13 +224,15 @@ def create_parser():
                       help="Number of tries for each test")
     parser.add_option("-q", "--quiet", dest="quiet", default=True, action="store_false",
                       help="Do not print any output")
+    parser.add_option("-H", "--human", dest="human", default=False, action="store_true",
+                      help="Output in human-readable format")
 
     parser.set_usage("""%prog [options]""")
     return parser
 
 
 def parse_args(parser):
-    global print_output
+    global print_output, human_format
 
     """Parses argument using given parses and check resulting value combination"""
     (options, args) = parser.parse_args()
@@ -236,6 +245,9 @@ def parse_args(parser):
         options.cores = range(1, psutil.cpu_count(logical=True) + 1)
     else:
         options.cores = [int(value) for value in options.cores]
+
+    if options.human:
+        human_format = True
 
     options.tries = int(options.tries)
     options.timeout = float(options.timeout)
