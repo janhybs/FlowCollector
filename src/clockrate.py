@@ -1,15 +1,21 @@
 # encoding: utf-8
 # author:   Jan Hybs
 
-from multiprocessing import Process, Value, Event
 from optparse import OptionParser
 import time
-import hashlib
 import re
 import json
 import platform
 from subprocess import check_output
+
+from perf.factorial import Factorial
+from perf.forloop import ForLoop
+from perf.hashsha import HashSHA
+from perf.matrixcreate import MatrixCreate
+from perf.matrixsolve import MatrixSolve
+from perf.stringconcat import StringConcat
 from utils.strings import human_readable
+
 
 try:
     from psutil import cpu_count
@@ -35,106 +41,6 @@ from utils.progressbar import ProgressBar
 
 
 timer = Timer()
-
-
-class AbstractProcess(Process):
-    def __init__(self, ):
-        Process.__init__(self)
-        self.exit = Event()
-        self.result = Value('f', 0)
-        self.terminated = None
-
-    def run(self):
-        self.test(self.result)
-
-    def shutdown(self):
-        if self.is_alive():
-            self.exit.set()
-            self.terminated = True
-        else:
-            self.terminated = False
-
-    def test(self, result):
-        pass
-
-
-class ForLoop(AbstractProcess):
-    def test(self, result):
-        i = 0
-        score = 0
-        while not self.exit.is_set():
-            score += i
-            i += 1
-        result.value = score
-
-
-class Factorial(AbstractProcess):
-    def test(self, result):
-        import math
-
-        i = 0
-        score = 0
-        while not self.exit.is_set():
-            math.factorial(i)
-            score += i
-            i += 1
-        result.value = score
-
-    def factorial(self, n):
-        # return math.factorial(n)
-        return reduce(lambda x, y: x * y, [1] + range(1, n + 1))
-
-
-class HashSHA(AbstractProcess):
-    def test(self, result):
-        i = 0
-        score = 0
-        while not self.exit.is_set():
-            hashlib.sha512('1234').hexdigest()
-            score += i
-            i += 1
-        result.value = score
-
-
-class MatrixCreate(AbstractProcess):
-    def test(self, result):
-        import numpy
-
-        rnd = numpy.random.RandomState(1234)
-        i = 0
-        score = 0
-        while not self.exit.is_set():
-            rnd.random_sample((i + 1, i + 1))
-            score += i
-            i += 1
-        result.value = score
-
-
-class MatrixSolve(AbstractProcess):
-    def test(self, result):
-        import numpy
-
-        rnd = numpy.random.RandomState(1234)
-        i = 0
-        score = 0
-        while not self.exit.is_set():
-            matrix = rnd.random_sample((i + 1, i + 1))
-            numpy.linalg.inv(matrix)
-            score += i
-            i += 1
-        result.value = score
-
-
-class StringConcat(AbstractProcess):
-    def test(self, result):
-        i = 0
-        a = 'a'
-        score = 0
-        while not self.exit.is_set():
-            a += i * 'a'
-            score += i
-            i += 1
-        result.value = score
 
 
 class BenchmarkMeasurement(object):
@@ -219,9 +125,9 @@ def create_parser():
     parser = OptionParser()
 
     parser.add_option("-i", "--include", dest="includes", metavar="TESTNAME", default=[], action="append",
-                      help="Turn on specific tests, by default all tests are included")
+                      help="Turn on specific perf, by default all perf are included")
     parser.add_option("-x", "--exclude", dest="excludes", metavar="TESTNAME", default=[], action="append",
-                      help="Turn off specific tests")
+                      help="Turn off specific perf")
     parser.add_option("-c", "--core", dest="cores", metavar="CORE", default=[], action="append",
                       help="Try test with this amount of core, by default 1...N, where N is maximum cores available")
 
@@ -273,7 +179,7 @@ def main():
     try:
         # with timer.measured('node-performance', print_output):
             if print_output:
-                print "{:-^55}".format("Running tests")
+                print "{:-^55}".format("Running perf")
                 print "{:-^55}".format(str(includes))
 
             measurement = BenchmarkMeasurement()
@@ -337,7 +243,7 @@ def main():
             info['system']['node'] = platform.node()
             info['system']['release'] = platform.release()
 
-            clockrate_result = { 'architecture': info, 'tests': test_results }
+            clockrate_result = { 'architecture': info, 'perf': test_results }
 
             try:
                 with open('node_test.json', 'w+') as fp:
