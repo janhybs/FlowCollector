@@ -12,10 +12,17 @@ from subprocess import check_output
 from utils.strings import human_readable
 
 try:
-    import psutil
+    from psutil import cpu_count
 except ImportError as e:
-    import utils.simple_psutil as psutil
-    print 'psutil lib missing, using simple_psutil'
+    from utils.simple_psutil import cpu_count
+    print 'psutil lib missing, using simple_psutil cpu_count'
+
+try:
+    from psutil import virtual_memory
+except ImportError as e:
+    from utils.simple_psutil import virtual_memory
+    print 'psutil lib missing, using simple_psutil virtual_memory'
+
 
 try:
     from pluck import pluck
@@ -242,7 +249,7 @@ def parse_args(parser):
         includes = includes - set(options.excludes)
 
     if not options.cores:
-        options.cores = range(1, psutil.cpu_count(logical=True) + 1)
+        options.cores = range(1, cpu_count(logical=True) + 1)
     else:
         options.cores = [int(value) for value in options.cores]
 
@@ -296,13 +303,13 @@ def main():
 
             info = dict()
             info['memory'] = dict()
-            info['memory']['total'] = psutil.virtual_memory().total
-            info['memory']['avail'] = psutil.virtual_memory().available
+            info['memory']['total'] = virtual_memory().total
+            info['memory']['avail'] = virtual_memory().available
 
             # info['disk'] = [psutil.disk_partitions()]
             info['cpu'] = dict()
-            info['cpu']['physical'] = psutil.cpu_count(logical=False)
-            info['cpu']['logical'] = psutil.cpu_count(logical=True)
+            info['cpu']['physical'] = cpu_count(logical=False)
+            info['cpu']['logical'] = cpu_count(logical=True)
             info['cpu']['architecture'] = platform.processor()
             if platform.system() == 'Linux':
                 cpu_info = check_output('cat /proc/cpuinfo', shell=True).split('\n')
