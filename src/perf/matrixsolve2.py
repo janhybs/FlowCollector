@@ -3,10 +3,10 @@
 from perf.abstract import AbstractProcess
 
 
-class MatrixCreate(AbstractProcess):
+class MatrixSolve(AbstractProcess):
     """
-    Test determining MEMORY performance
-    Test complexity is constant
+    Test determining CPU and MEMORY performance
+    Test complexity is not constant
     """
 
     def test(self, result):
@@ -16,7 +16,8 @@ class MatrixCreate(AbstractProcess):
         i = 0
         score = 0
         while not self.exit.is_set():
-            rnd.random_sample((100, 100))
+            matrix = rnd.random_sample((i + 1, i + 1))
+            numpy.linalg.inv(matrix)
             score = i
             i += 1
         result.value = score

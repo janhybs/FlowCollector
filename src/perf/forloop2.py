@@ -1,20 +1,21 @@
 # encoding: utf-8
 # author:   Jan Hybs
-import hashlib
 from perf.abstract import AbstractProcess
 
 
-class HashSHA(AbstractProcess):
+class ForLoop(AbstractProcess):
     """
     Test determining CPU performance
-    Test complexity is constant
+    Test complexity is not constant
     """
 
     def test(self, result):
         i = 0
+        k = 0
         score = 0
         while not self.exit.is_set():
-            hashlib.sha512('1234').hexdigest()
+            for j in range (0, i):
+                k = j
             score = i
             i += 1
         result.value = score

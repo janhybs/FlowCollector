@@ -1,20 +1,22 @@
 # encoding: utf-8
 # author:   Jan Hybs
-import hashlib
 from perf.abstract import AbstractProcess
 
 
-class HashSHA(AbstractProcess):
+class MatrixCreate(AbstractProcess):
     """
-    Test determining CPU performance
-    Test complexity is constant
+    Test determining MEMORY performance
+    Test complexity is not constant
     """
 
     def test(self, result):
+        import numpy
+
+        rnd = numpy.random.RandomState(1234)
         i = 0
         score = 0
         while not self.exit.is_set():
-            hashlib.sha512('1234').hexdigest()
+            rnd.random_sample((i + 1, i + 1))
             score = i
             i += 1
         result.value = score

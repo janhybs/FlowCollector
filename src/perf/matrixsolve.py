@@ -1,9 +1,14 @@
 # encoding: utf-8
 # author:   Jan Hybs
-from perf._abstract import AbstractProcess
+from perf.abstract import AbstractProcess
 
 
 class MatrixSolve(AbstractProcess):
+    """
+    Test determining CPU and MEMORY performance
+    Test complexity is constant
+    """
+
     def test(self, result):
         import numpy
 
@@ -11,8 +16,8 @@ class MatrixSolve(AbstractProcess):
         i = 0
         score = 0
         while not self.exit.is_set():
-            matrix = rnd.random_sample((i + 1, i + 1))
+            matrix = rnd.random_sample((100, 100))
             numpy.linalg.inv(matrix)
-            score += i
+            score = i
             i += 1
         result.value = score

@@ -6,18 +6,17 @@ from perf.abstract import AbstractProcess
 class Factorial(AbstractProcess):
     """
     Test determining CPU performance
-    Test complexity constant
+    Test complexity is not constant (possible n)
     """
 
     def test(self, result):
         import math
 
         i = 0
-        n = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
         score = 0
         while not self.exit.is_set():
-            math.factorial(n[i % 10])
-            score = i
+            math.factorial(i)
+            score += i
             i += 1
         result.value = score
 

@@ -6,15 +6,15 @@ from perf.abstract import AbstractProcess
 
 class HashSHA(AbstractProcess):
     """
-    Test determining CPU performance
-    Test complexity is constant
+    Test determining CPU and MEMORY performance
+    Test complexity is not constant
     """
 
     def test(self, result):
         i = 0
         score = 0
         while not self.exit.is_set():
-            hashlib.sha512('1234').hexdigest()
-            score = i
+            hashlib.sha512(i *'a').hexdigest()
+            score += i
             i += 1
         result.value = score

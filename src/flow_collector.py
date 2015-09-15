@@ -4,6 +4,7 @@ import filecmp
 import json
 from optparse import OptionParser
 import os
+import sys
 
 from mongodb.mongo_exec import MongoExec
 from utils.decoder import ProfilerJSONDecoder
@@ -143,11 +144,42 @@ class Runner(object):
 
 
 
+if __name__ == '__main__':
+    rootdir = '/home/jenk/flow-collector-arts'
+    dirs = os.listdir(rootdir)
+    dirs.sort()
+    # dirs.reverse()
+    for test_dir in dirs:
+        if os.path.isfile(os.path.join(rootdir, test_dir)):
+            continue
+        runner = Runner(None)
+
+        json_files = []
+        for root, subdir, files in os.walk(os.path.join(rootdir, test_dir)):
+            for filename in files:
+                file_path = os.path.join(root, filename)
+                if filename.lower().endswith('.json') and filename.lower().startswith('profiler_'):
+                    json_files.append(file_path)
+
+        correct_files = []
+        broken_files  = []
+        for json_file in json_files:
+            try:
+                data = runner.read_file(json_file)
+                if data is None:
+                    raise Exception
+                correct_files.append(json_file)
+            except Exception:
+                broken_files.append(json_file)
+
+        print "{:32s} {:3d}/{:3d}".format(test_dir, len(broken_files), len(json_files))
+        if len(broken_files) == 2:
+            print broken_files
+        # print '\n'.join(broken_files)
 
 
 
-
-
+sys.exit()
 if __name__ == '__main__':
     parser = create_parser()
     (options, args) = parse_args(parser)
@@ -184,3 +216,5 @@ if __name__ == '__main__':
         print ''
         print ":: removed {:d} duplicates (total {:d}, distinct {:d})".format(dupes, len(runner.json_files_all), len(runner.json_files_distinct))
         print ":: {:d} broken files from total of {:d}".format(len(runner.json_files_broken), len(runner.json_files_distinct))
+
+
